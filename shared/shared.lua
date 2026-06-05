@@ -1,0 +1,11 @@
+Config = {}
+
+Config.MenuKey = 'LMENU'
+
+Config.RaycastDistance = 300.0
+
+Config.ItemsPerPage = 9
+
+Config.DefaultEntityIcon = 'fa-solid fa-circle'
+
+Config.PlayerInteractDistance = 2.5
