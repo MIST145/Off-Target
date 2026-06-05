@@ -29,7 +29,9 @@ Hold the menu key, right-click anything in the world, and act on it.
 - [Full documentation](#full-documentation)
 - [License](#license)
 
---- Preview
+--- 
+
+### Preview
 
 <img width="392" height="312" alt="image" src="https://github.com/user-attachments/assets/52ae09a7-c324-4a9d-ab6a-03543a0c4aa4" />
 
