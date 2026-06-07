@@ -13,8 +13,6 @@ Hold the menu key, right-click anything in the world, and act on it.
 
 </div>
 
--
-
 ## Table of contents
 
 - [Features](#features)
