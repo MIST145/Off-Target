@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🎯 off-target
+# 🎯 Off-Target
 
-**A right-click context menu for FiveM with drop-in `ox_target` and `qtarget` compatibility layers.**
+**A right-click context menu for FiveM, with drop-in `ox_target` and `qtarget` compatibility.**
 
 Hold the menu key, right-click anything in the world, and act on it.
 
@@ -13,10 +13,33 @@ Hold the menu key, right-click anything in the world, and act on it.
 
 </div>
 
-## Preview:
-https://www.youtube.com/watch?v=peS7m275vEY
-<img width="392" height="312" alt="Capture d&#39;écran 2026-06-05 213419" src="https://github.com/user-attachments/assets/1168b28b-161a-4ee2-8aa7-46f654cc7778" />
+## Preview
 
+
+
+
+[![Voir la vidéo](https://img.youtube.com/vi/peS7m275vEY/maxresdefault.jpg)](https://www.youtube.com/watch?v=peS7m275vEY)
+
+<img width="392" height="312" alt="Capture d'écran 2026-06-05 213419" src="https://github.com/user-attachments/assets/496105e3-288b-42eb-9237-8f5012c85c31" />
+
+
+---
+
+## What's new
+
+- **Full code refactor.** The menu core was rewritten around a flat, ID-based
+  export API. No more passing builder objects across the resource boundary
+  (which silently broke metatables and funcrefs in FiveM).
+- **Proper `ox_target` & `qtarget` adaptation.** Both layers now track which
+  resource registered each option/zone and clean up automatically on
+  `stop`/`restart` — no leaks, no duplicates.
+- **Everything is exported.** `Register`, `SetHeader`, `AddItem`, `AddCheckbox`,
+  `AddSubmenu`, `AddSeparator`, `AddInfo`, `OnActivate`, `OnValueChanged`,
+  `Toggle` — all callable from any resource.
+- **New [`exports.md`](exports.md)** documenting every export (Off-Target,
+  ox_target and qtarget) in one place.
+
+---
 
 ## Table of contents
 
@@ -25,58 +48,59 @@ https://www.youtube.com/watch?v=peS7m275vEY
 - [Installation](#installation)
 - [Building the UI](#building-the-ui)
 - [Configuration](#configuration)
+- [Quick start — the menu API](#quick-start--the-menu-api)
 - [ox_target compatibility](#ox_target-compatibility)
 - [qtarget compatibility](#qtarget-compatibility)
-- [Native API](#native-api)
+- [Lifecycle & cleanup](#lifecycle--cleanup)
 - [Project structure](#project-structure)
-- [Publishing to GitHub](#publishing-to-github)
 - [Full documentation](#full-documentation)
+- [Credits](#credits)
 - [License](#license)
 
--
+---
 
 ## Features
 
-- 🖱️ **Right-click context menu** with a clean, animated NUI (React + Vite).
-- 🔌 **Drop-in `ox_target` replacement** — existing scripts work without code changes.
-- 🔁 **`qtarget` compatibility layer** — legacy `exports.qtarget:*` scripts keep working without renaming the resource.
-- 🧱 **Builder API** for custom menus (items, checkboxes, submenus, separators, info rows, copy-to-clipboard).
-- 🎯 **Screen raycast** resolves the entity / model / coordinates under the cursor.
-- 👤 **Player scoping** — target everyone, only yourself, or only other players.
-- 📦 **Zones** — sphere, box and polygon, with optional on-screen markers.
-- 🎨 Per-item icons (Font Awesome), accent colors, descriptions and paging.
+- **Right-click context menu** with a clean, animated NUI (React + Vite).
+- **Drop-in `ox_target` replacement** — existing scripts keep working.
+- **`qtarget` compatibility layer** — legacy `exports.qtarget:*` scripts keep working.
+- **Simple export API** for custom menus: items, checkboxes, submenus, separators, info rows.
+- **Screen raycast** resolves the entity / model / coordinates under the cursor.
+- **Player scoping** — target everyone, only yourself, or only other players.
+- **Zones** — sphere, box and polygon, with optional on-screen markers.
+- Per-item icons (Font Awesome), accent colors, descriptions and paging.
 
--
+---
 
 ## How it works
 
 1. You hold the **menu key** (default `LEFT ALT`) — the NUI cursor appears.
 2. You **right-click** in the world.
 3. A screen-space raycast finds what is under the cursor (entity, model, world position).
-4. Every registered target callback is asked what to show for that hit.
+4. Every registered callback is asked what to show for that hit.
 5. Matching options are merged into one menu and rendered.
 
-There are two ways to register targets:
+There are two ways to add entries:
 
-- The **`ox_target` / `qtarget` exports** (for compatibility with the existing ecosystem).
-- The **native `ContextMenu` builder** (for full control).
+- The **`ox_target` / `qtarget` exports** — for the existing ecosystem.
+- The **`Off-Target` exports** (`Register`, `AddItem`, …) — for full control.
 
--
+---
 
 ## Installation
 
-1. Drop the resource into your `resources` folder.
+1. Drop the resource into your `resources` folder (folder name: `Off-Target`).
 2. **Build the UI** once (see below) so `web/build` exists.
 3. Add to your `server.cfg`:
 
 ```cfg
-ensure off-target
+ensure Off-Target
 ```
 
-> ⚠️ The manifest declares `provide 'ox_target'` and `provide 'qtarget'`.
+> The manifest declares `provide 'ox_target'` and `provide 'qtarget'`.
 > **Do not run the real `ox_target` or `qtarget` at the same time** — they would conflict.
 
--
+---
 
 ## Building the UI
 
@@ -95,7 +119,7 @@ npm run build
 | `npm run game` | Rebuild on every change (`vite build --watch`). |
 | `npm run lint` | Run ESLint. |
 
--
+---
 
 ## Configuration
 
@@ -127,16 +151,56 @@ Config.MarkerDrawDistance = 7.0           -- max distance a zone marker is drawn
 Common key names: `LMENU` (Left Alt), `RMENU` (Right Alt), `LCONTROL`, `B`, `F1`…
 Players can also rebind it in **Settings → Key Bindings → FiveM**.
 
--
+---
+
+## Quick start — the menu API
+
+Grab the resource exports and register a callback. The callback runs on every
+right-click with the raycast result. Add entries, then attach behaviour to the
+returned IDs.
+
+```lua
+local ContextMenu = exports['Off-Target']
+
+ContextMenu:Register(function(entity, entityType, worldPos, hit)
+    if not hit then return end
+    if entity ~= PlayerPedId() then return end
+
+    ContextMenu:SetHeader('Me', 'fa-solid fa-user')
+
+    local handsUp = ContextMenu:AddItem(0, 'Hands Up', 'fa-solid fa-hands', { color = { 99, 102, 241 } })
+    ContextMenu:OnActivate(handsUp, function()
+        TaskStartScenarioInPlace(PlayerPedId(), 'WORLD_HUMAN_HANDS_UP', 0, true)
+    end)
+
+    local drunk = ContextMenu:AddCheckbox(0, 'Drunk Walk', false, 'fa-solid fa-shoe-prints')
+    ContextMenu:OnValueChanged(drunk, function(checked)
+        if checked then
+            SetPedMovementClipset(PlayerPedId(), 'move_m@drunk@verydrunk', 1.0)
+        else
+            ResetPedMovementClipset(PlayerPedId(), 0.0)
+        end
+    end)
+end)
+```
+
+Key points:
+
+- `entityType`: `0` world · `1` ped · `2` vehicle · `3` object.
+- Each `Add*` returns a numeric **id**. Pass `0` as the parent for the root menu,
+  or a submenu id (from `AddSubmenu`) to nest an item.
+- Attach actions to ids with `OnActivate(id, fn)` (click) and
+  `OnValueChanged(id, fn)` (checkbox).
+- **No bridge file and nothing to require** — you only use the resource exports.
+
+Full runnable examples are in [`examples/`](examples/), and every export is
+documented in [`exports.md`](exports.md).
+
+---
 
 ## ox_target compatibility
 
-> ⚠️ **To use the `ox_target` integration, rename the resource folder to `ox_target`**
-> (and remove the real `ox_target`). Exports resolve by resource name, so
-> `exports.ox_target:*` only hits this resource if it is named `ox_target`.
-> The **qtarget** layer (`exports.qtarget:*`) works without renaming.
-
-Existing scripts keep working unchanged:
+Existing `ox_target` scripts keep working unchanged:
 
 ```lua
 exports.ox_target:addGlobalVehicle({
@@ -152,55 +216,23 @@ exports.ox_target:addGlobalVehicle({
 })
 ```
 
-**Supported exports**
+> **Export resolution by folder name.** Scripts call `exports.ox_target:*`,
+> which FiveM resolves by **resource folder name**. To take over the `ox_target`
+> export, rename the folder to `ox_target` and remove the real one.
+> The `qtarget` layer hooks the `__cfx_export_qtarget_*` events directly and
+> works regardless of the folder name.
 
-| Category | Exports |
-| --- | --- |
-| Players | `addGlobalPlayer`, `addGlobalSelfPlayer`, `addGlobalOtherPlayer`, `removeGlobalPlayer`, `removeGlobalSelfPlayer`, `removeGlobalOtherPlayer` |
-| Peds | `addGlobalPed`, `removeGlobalPed` |
-| Vehicles | `addGlobalVehicle`, `removeGlobalVehicle` |
-| Objects | `addGlobalObject`, `removeGlobalObject` |
-| Global | `addGlobalOption`, `removeGlobalOption` |
-| Models | `addModel`, `removeModel` |
-| Networked entities | `addEntity`, `removeEntity` |
-| Local entities | `addLocalEntity`, `removeLocalEntity` |
-| Zones | `addSphereZone`, `addBoxZone`, `addPolyZone`, `removeZone` |
-| Misc | `disableTargeting` |
+The full list of supported exports and option fields is in
+[`exports.md`](exports.md) and [`DOCS.md`](DOCS.md).
 
-**Player scoping**
-
-| Export | Shows on |
-| --- | --- |
-| `addGlobalPlayer` | every player (yourself **and** others) |
-| `addGlobalSelfPlayer` | only yourself |
-| `addGlobalOtherPlayer` | only other players |
-
-**Option fields**
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `name` | string | Unique id (used by `remove*`). |
-| `label` | string | Text shown in the menu. |
-| `icon` | string | Font Awesome class. |
-| `iconColor` | `{r,g,b}` | Accent color. |
-| `distance` | number | Max interact distance (default `7.0`). |
-| `canInteract` | function | `(entity, distance, coords, name, bone) → boolean`. |
-| `onSelect` | function | `(data)` — primary action. |
-| `event` / `serverEvent` | string | Trigger a client / server event with `data`. |
-| `command` | string | Execute a console command. |
-| `export` | string | `'resource.function'`, called with `data`. |
-
-`data` passed to actions: `{ entity, coords, distance }`.
-
--
+---
 
 ## qtarget compatibility
 
-Legacy `qtarget` scripts work **without renaming the resource** — the layer hooks
-the `__cfx_export_qtarget_*` events directly and forwards to `off-target`.
+Legacy `qtarget` scripts work without renaming the resource — the layer hooks the
+`__cfx_export_qtarget_*` events and forwards to Off-Target.
 
 ```lua
--- only other players (type routes to the matching scope)
 exports.qtarget:Player({
     options = { ... },
     distance = 1.5,
@@ -208,118 +240,81 @@ exports.qtarget:Player({
 })
 ```
 
-| `type` | Routed to |
-| --- | --- |
-| `'self'` | `addGlobalSelfPlayer` |
-| `'other'` | `addGlobalOtherPlayer` |
-| omitted / other | `addGlobalPlayer` |
-
-**Supported qtarget exports**
-
-| Category | Exports |
-| --- | --- |
-| Zones | `AddBoxZone`, `AddPolyZone`, `AddCircleZone`, `RemoveZone` |
-| Globals | `Ped`, `Vehicle`, `Object`, `Player`, `Globals` (+ matching `Remove*`) |
-| Models | `AddTargetModel`, `RemoveTargetModel` |
-| Entities | `AddTargetEntity`, `RemoveTargetEntity` |
-| Bones | `AddTargetBone` |
-
 qtarget option fields (`action`, `job`, `item`/`required_item`, `event` + `type`)
-are converted automatically to the `off-target` schema.
+are converted automatically to the Off-Target schema. See [`exports.md`](exports.md).
 
--
+---
 
-## Native API
+## Lifecycle & cleanup
 
-Register a builder callback. It runs on every right-click with the raycast result:
+The menu is **rebuilt on every right-click** — nothing is cached between opens,
+so it always reflects live game state.
+
+Registration is tied to the resource that made it:
+
+- When a resource that called `Register` / `addGlobal*` / `add*Zone` **stops or
+  restarts**, Off-Target removes its callbacks, options and zones. This prevents
+  dead function references and duplicate entries on restart.
+- When **Off-Target itself** restarts, other resources lose their registrations.
+  They can re-register on the `off-target:ready` event:
 
 ```lua
-ContextMenu.Register(function(builder, entity, entityType, worldPos, hit)
-    if not hit then return end
-
-    builder:SetHeader('Player', 'fa-solid fa-user')
-
-    builder:AddItem(0, 'Greet', function(ent, coords)
-        print('greeted', ent)
-    end, 'fa-solid fa-hand', { color = { 99, 102, 241 } }, 'Says hello.')
-
-    builder:AddInfo(0, 'Entity', tostring(entity), 'fa-solid fa-hashtag')
-    builder:AddSeparator(0)
-
-    builder:AddCheckbox(0, 'Outline', false, function(checked)
-        print('outline', checked)
-    end, 'fa-solid fa-vector-square')
-
-    local sub = builder:AddSubmenu(0, 'More', 'fa-solid fa-ellipsis')
-    builder:AddItem(sub, 'Sub action', function() end, 'fa-solid fa-gear')
+AddEventHandler('off-target:ready', function()
+    -- re-run your ContextMenu:Register(...) / ox_target / qtarget calls here
 end)
 ```
 
-`entityType`: `0` world · `1` ped · `2` vehicle · `3` object.
-
-See [`exemple.lua`](exemple.lua) for complete, runnable examples and
-[`DOCS.md`](DOCS.md) for the full builder reference.
-
--
+---
 
 ## Project structure
 
 ```
-off-target/
+Off-Target/
 ├─ fxmanifest.lua          # Resource manifest (provides 'ox_target' + 'qtarget')
 ├─ shared/
 │  └─ shared.lua           # Config: key, distances, paging, markers
 ├─ client/
-│  ├─ keys.lua             # Keybinding helper
-│  ├─ contextmenu.lua      # Menu core: NUI bridge, raycast, builder
-│  ├─ ox_target.lua        # ox_target compatibility layer
-│  └─ qtarget.lua          # qtarget compatibility layer
-├─ exemple.lua             # Usage examples (not loaded by the manifest)
+│  ├─ core/
+│  │  ├─ keys.lua          # Keybinding helper
+│  │  └─ contextmenu.lua   # Menu core: NUI bridge, raycast, exports, cleanup
+│  └─ convert/
+│     ├─ _utils.lua        # Shared helpers (list/convert/owner-tagging)
+│     ├─ target.lua        # Targeting store + OxTarget API + matching + markers
+│     ├─ ox_target.lua     # ox_target export layer
+│     └─ qtarget.lua       # qtarget export layer
+├─ examples/               # Standalone usage examples (not in the manifest)
+├─ exports.md              # Every export (Off-Target / ox_target / qtarget)
 ├─ DOCS.md                 # Full documentation
 └─ web/                    # React (Vite) NUI
    ├─ src/                 # UI source
    └─ build/               # Compiled UI (served by the manifest)
 ```
 
--
-
-## Publishing to GitHub
-
-You can ship **source + compiled UI** so users don't have to build anything.
-
-```bash
-cd web && npm install && npm run build && cd ..
-git init
-git add .
-git commit -m "Initial release"
-git remote add origin https://github.com/<you>/off-target.git
-git push -u origin main
-```
-
-What gets committed and what doesn't is handled by `.gitignore`:
-
-| Path | Committed? | Why |
-| --- | --- | --- |
-| `client/`, `shared/`, `fxmanifest.lua`, `exemple.lua` | ✅ | The resource. |
-| `web/src/`, `web/package.json`, configs | ✅ | UI source. |
-| **`web/build/`** | ✅ | So the resource runs without building. |
-| `web/node_modules/` | ❌ | Reinstalled with `npm install`. |
-| `*.tsbuildinfo`, `web/dist/` | ❌ | Build cache. |
-
-> **TL;DR:** build with `npm run build`, then push. `node_modules` is ignored
-> automatically, and `web/build` **is** committed so the resource runs out of the box.
-
-If instead you prefer a **source-only** repo (users build themselves), add
-`web/build` to `.gitignore` and tell them to run `npm install && npm run build`.
-
--
+---
 
 ## Full documentation
 
-Detailed reference, every builder method, every ox_target / qtarget export, return
-values and edge cases are in **[DOCS.md](DOCS.md)**.
+- **[exports.md](exports.md)** — every export, parameters and return values.
+- **[DOCS.md](DOCS.md)** — concepts, schemas, behaviour, troubleshooting.
 
--
+---
+
+## Credits
+
+Off-Target builds on ideas and conventions from the FiveM targeting ecosystem:
+
+- **[Kiminaze](https://github.com/Kiminaze/ContextMenu)** — the original
+  right-click `ContextMenu` resource. Its flat, ID-based export design
+  (`Register` → `AddItem` → `OnActivate`) is the pattern this resource follows
+  so menus work cleanly across the resource boundary.
+- **[ox_target](https://github.com/overextended/ox_target)** (Overextended) —
+  the targeting API mirrored by the `ox_target` compatibility layer.
+- **[qtarget](https://github.com/overextended/qtarget)** — the legacy targeting
+  API mirrored by the `qtarget` compatibility layer.
+
+All trademarks and resources belong to their respective authors.
+
+---
 
 ## License
 
