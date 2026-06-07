@@ -2,7 +2,7 @@
 
 # 🎯 off-target
 
-**A right-click context menu for FiveM with a drop-in `ox_target` compatibility layer.**
+**A right-click context menu for FiveM with drop-in `ox_target` and `qtarget` compatibility layers.**
 
 Hold the menu key, right-click anything in the world, and act on it.
 
@@ -13,7 +13,7 @@ Hold the menu key, right-click anything in the world, and act on it.
 
 </div>
 
----
+-
 
 ## Table of contents
 
@@ -23,37 +23,31 @@ Hold the menu key, right-click anything in the world, and act on it.
 - [Building the UI](#building-the-ui)
 - [Configuration](#configuration)
 - [ox_target compatibility](#ox_target-compatibility)
+- [qtarget compatibility](#qtarget-compatibility)
 - [Native API](#native-api)
 - [Project structure](#project-structure)
 - [Publishing to GitHub](#publishing-to-github)
 - [Full documentation](#full-documentation)
 - [License](#license)
 
---- 
-
-### Preview
-
-https://youtu.be/peS7m275vEY
-
-<img width="392" height="312" alt="image" src="https://github.com/user-attachments/assets/52ae09a7-c324-4a9d-ab6a-03543a0c4aa4" />
-
-
----
+-
 
 ## Features
 
 - 🖱️ **Right-click context menu** with a clean, animated NUI (React + Vite).
-- 🔌 **Drop-in `ox_target` replacement** - existing scripts work without code changes (`provide 'ox_target'`).
+- 🔌 **Drop-in `ox_target` replacement** — existing scripts work without code changes.
+- 🔁 **`qtarget` compatibility layer** — legacy `exports.qtarget:*` scripts keep working without renaming the resource.
 - 🧱 **Builder API** for custom menus (items, checkboxes, submenus, separators, info rows, copy-to-clipboard).
 - 🎯 **Screen raycast** resolves the entity / model / coordinates under the cursor.
-- 📦 **Zones** - sphere, box and polygon.
+- 👤 **Player scoping** — target everyone, only yourself, or only other players.
+- 📦 **Zones** — sphere, box and polygon, with optional on-screen markers.
 - 🎨 Per-item icons (Font Awesome), accent colors, descriptions and paging.
 
----
+-
 
 ## How it works
 
-1. You hold the **menu key** (default `LEFT ALT`) - the NUI cursor appears.
+1. You hold the **menu key** (default `LEFT ALT`) — the NUI cursor appears.
 2. You **right-click** in the world.
 3. A screen-space raycast finds what is under the cursor (entity, model, world position).
 4. Every registered target callback is asked what to show for that hit.
@@ -61,10 +55,10 @@ https://youtu.be/peS7m275vEY
 
 There are two ways to register targets:
 
-- The **`ox_target` exports** (for compatibility with the existing ecosystem).
+- The **`ox_target` / `qtarget` exports** (for compatibility with the existing ecosystem).
 - The **native `ContextMenu` builder** (for full control).
 
----
+-
 
 ## Installation
 
@@ -76,9 +70,10 @@ There are two ways to register targets:
 ensure off-target
 ```
 
-> ⚠️ Because this resource declares `provide 'ox_target'`, **do not run the real `ox_target` at the same time** - they would conflict.
+> ⚠️ The manifest declares `provide 'ox_target'` and `provide 'qtarget'`.
+> **Do not run the real `ox_target` or `qtarget` at the same time** — they would conflict.
 
----
+-
 
 ## Building the UI
 
@@ -97,7 +92,7 @@ npm run build
 | `npm run game` | Rebuild on every change (`vite build --watch`). |
 | `npm run lint` | Run ESLint. |
 
----
+-
 
 ## Configuration
 
@@ -106,19 +101,37 @@ Everything lives in [`shared/shared.lua`](shared/shared.lua):
 ```lua
 Config = {}
 
-Config.MenuKey = 'LMENU'           -- key that opens the menu (FiveM key name)
-Config.RaycastDistance = 300.0     -- max world raycast distance
-Config.ItemsPerPage = 9            -- items before paging kicks in
+Config.MenuKey = 'LMENU'                  -- key that opens the menu (FiveM key name)
+Config.RaycastDistance = 300.0            -- max world raycast distance
+Config.ItemsPerPage = 9                   -- items before paging kicks in
 Config.DefaultEntityIcon = 'fa-solid fa-circle'
-Config.PlayerInteractDistance = 2.5
+Config.PlayerInteractDistance = 2.5       -- default player interact distance
+
+Config.MarkerClickRadius = 18             -- click radius (pixels) around a zone marker
+Config.MarkerDrawDistance = 7.0           -- max distance a zone marker is drawn
 ```
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `MenuKey` | `'LMENU'` | FiveM key name that opens the menu. |
+| `RaycastDistance` | `300.0` | Max world raycast distance. |
+| `ItemsPerPage` | `9` | Root items shown before paging. |
+| `DefaultEntityIcon` | `'fa-solid fa-circle'` | Fallback icon. |
+| `PlayerInteractDistance` | `2.5` | Default interact distance on players. |
+| `MarkerClickRadius` | `18` | Click radius in pixels around a zone marker. |
+| `MarkerDrawDistance` | `7.0` | Max distance a zone marker is drawn. |
 
 Common key names: `LMENU` (Left Alt), `RMENU` (Right Alt), `LCONTROL`, `B`, `F1`…
 Players can also rebind it in **Settings → Key Bindings → FiveM**.
 
----
+-
 
 ## ox_target compatibility
+
+> ⚠️ **To use the `ox_target` integration, rename the resource folder to `ox_target`**
+> (and remove the real `ox_target`). Exports resolve by resource name, so
+> `exports.ox_target:*` only hits this resource if it is named `ox_target`.
+> The **qtarget** layer (`exports.qtarget:*`) works without renaming.
 
 Existing scripts keep working unchanged:
 
@@ -140,15 +153,24 @@ exports.ox_target:addGlobalVehicle({
 
 | Category | Exports |
 | --- | --- |
-| Players | `addGlobalPlayer`, `removeGlobalPlayer` |
+| Players | `addGlobalPlayer`, `addGlobalSelfPlayer`, `addGlobalOtherPlayer`, `removeGlobalPlayer`, `removeGlobalSelfPlayer`, `removeGlobalOtherPlayer` |
 | Peds | `addGlobalPed`, `removeGlobalPed` |
 | Vehicles | `addGlobalVehicle`, `removeGlobalVehicle` |
 | Objects | `addGlobalObject`, `removeGlobalObject` |
+| Global | `addGlobalOption`, `removeGlobalOption` |
 | Models | `addModel`, `removeModel` |
 | Networked entities | `addEntity`, `removeEntity` |
 | Local entities | `addLocalEntity`, `removeLocalEntity` |
 | Zones | `addSphereZone`, `addBoxZone`, `addPolyZone`, `removeZone` |
 | Misc | `disableTargeting` |
+
+**Player scoping**
+
+| Export | Shows on |
+| --- | --- |
+| `addGlobalPlayer` | every player (yourself **and** others) |
+| `addGlobalSelfPlayer` | only yourself |
+| `addGlobalOtherPlayer` | only other players |
 
 **Option fields**
 
@@ -160,14 +182,49 @@ exports.ox_target:addGlobalVehicle({
 | `iconColor` | `{r,g,b}` | Accent color. |
 | `distance` | number | Max interact distance (default `7.0`). |
 | `canInteract` | function | `(entity, distance, coords, name, bone) → boolean`. |
-| `onSelect` | function | `(data)` - primary action. |
+| `onSelect` | function | `(data)` — primary action. |
 | `event` / `serverEvent` | string | Trigger a client / server event with `data`. |
 | `command` | string | Execute a console command. |
 | `export` | string | `'resource.function'`, called with `data`. |
 
 `data` passed to actions: `{ entity, coords, distance }`.
 
----
+-
+
+## qtarget compatibility
+
+Legacy `qtarget` scripts work **without renaming the resource** — the layer hooks
+the `__cfx_export_qtarget_*` events directly and forwards to `off-target`.
+
+```lua
+-- only other players (type routes to the matching scope)
+exports.qtarget:Player({
+    options = { ... },
+    distance = 1.5,
+    type = 'other',   -- 'self' = yourself, 'other' = others, nil/omitted = everyone
+})
+```
+
+| `type` | Routed to |
+| --- | --- |
+| `'self'` | `addGlobalSelfPlayer` |
+| `'other'` | `addGlobalOtherPlayer` |
+| omitted / other | `addGlobalPlayer` |
+
+**Supported qtarget exports**
+
+| Category | Exports |
+| --- | --- |
+| Zones | `AddBoxZone`, `AddPolyZone`, `AddCircleZone`, `RemoveZone` |
+| Globals | `Ped`, `Vehicle`, `Object`, `Player`, `Globals` (+ matching `Remove*`) |
+| Models | `AddTargetModel`, `RemoveTargetModel` |
+| Entities | `AddTargetEntity`, `RemoveTargetEntity` |
+| Bones | `AddTargetBone` |
+
+qtarget option fields (`action`, `job`, `item`/`required_item`, `event` + `type`)
+are converted automatically to the `off-target` schema.
+
+-
 
 ## Native API
 
@@ -200,19 +257,20 @@ end)
 See [`exemple.lua`](exemple.lua) for complete, runnable examples and
 [`DOCS.md`](DOCS.md) for the full builder reference.
 
----
+-
 
 ## Project structure
 
 ```
 off-target/
-├─ fxmanifest.lua          # Resource manifest (provides 'ox_target')
+├─ fxmanifest.lua          # Resource manifest (provides 'ox_target' + 'qtarget')
 ├─ shared/
-│  └─ shared.lua           # Config: key, distances, paging
+│  └─ shared.lua           # Config: key, distances, paging, markers
 ├─ client/
 │  ├─ keys.lua             # Keybinding helper
 │  ├─ contextmenu.lua      # Menu core: NUI bridge, raycast, builder
-│  └─ ox_target.lua        # ox_target compatibility layer
+│  ├─ ox_target.lua        # ox_target compatibility layer
+│  └─ qtarget.lua          # qtarget compatibility layer
 ├─ exemple.lua             # Usage examples (not loaded by the manifest)
 ├─ DOCS.md                 # Full documentation
 └─ web/                    # React (Vite) NUI
@@ -220,7 +278,7 @@ off-target/
    └─ build/               # Compiled UI (served by the manifest)
 ```
 
----
+-
 
 ## Publishing to GitHub
 
@@ -245,22 +303,21 @@ What gets committed and what doesn't is handled by `.gitignore`:
 | `web/node_modules/` | ❌ | Reinstalled with `npm install`. |
 | `*.tsbuildinfo`, `web/dist/` | ❌ | Build cache. |
 
-> **TL;DR for your question:** yes - build with `npm run build`, then push.
-> `node_modules` is ignored automatically (you don't even have to delete it),
-> and `web/build` **is** committed so the resource is ready to use out of the box.
+> **TL;DR:** build with `npm run build`, then push. `node_modules` is ignored
+> automatically, and `web/build` **is** committed so the resource runs out of the box.
 
 If instead you prefer a **source-only** repo (users build themselves), add
 `web/build` to `.gitignore` and tell them to run `npm install && npm run build`.
 
----
+-
 
 ## Full documentation
 
-Detailed reference, every builder method, every ox_target export, return values
-and edge cases are in **[DOCS.md](DOCS.md)**.
+Detailed reference, every builder method, every ox_target / qtarget export, return
+values and edge cases are in **[DOCS.md](DOCS.md)**.
 
----
+-
 
 ## License
 
-MIT - do what you want, no warranty.
+MIT — do what you want, no warranty.
