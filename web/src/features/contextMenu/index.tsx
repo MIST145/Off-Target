@@ -83,13 +83,9 @@ const ContextMenu: React.FC = () => {
     setMenuData(items);
     setCurrentPage(0);
 
-    // Placement initial au curseur ; la position est corrigée après mesure
-    // de la taille réelle du menu (voir useEffect ci-dessous).
     setPosition({ x: e.clientX, y: e.clientY });
   }, [visible, BROWSER]);
 
-  // Une fois le menu rendu, on mesure sa taille réelle et on le repositionne
-  // pour qu'il reste entièrement visible dans la fenêtre.
   useEffect(() => {
     if (!menuData.length) return;
     const el = anchorRef.current;
@@ -154,11 +150,17 @@ const ContextMenu: React.FC = () => {
     const page = depth === 0 ? currentPage : 0;
 
     let nonSepIdx = 0;
+    const startIdx = page * ITEMS_PER_PAGE;
+    const endIdx = (page + 1) * ITEMS_PER_PAGE;
+
     const paged = depth === 0 && totalPages > 1
       ? body.filter(i => {
-          if (i.separator) return true;
+          if (i.separator) {
+            const nextNonSepIdx = nonSepIdx;
+            return nextNonSepIdx > startIdx && nextNonSepIdx <= endIdx;
+          }
           const idx = nonSepIdx++;
-          return idx >= page * ITEMS_PER_PAGE && idx < (page + 1) * ITEMS_PER_PAGE;
+          return idx >= startIdx && idx < endIdx;
         })
       : body;
 
