@@ -1,7 +1,7 @@
 local exportHandler = Convert.exportHandler
 
 local api = {
-    addGlobalPlayer = OxTarget.addGlobalPlayer,
+    addGlobalPlayer = OxTarget.addGlobalOtherPlayer,
     addGlobalSelfPlayer = OxTarget.addGlobalSelfPlayer,
     addGlobalOtherPlayer = OxTarget.addGlobalOtherPlayer,
     addGlobalPed = OxTarget.addGlobalPed,
