@@ -15,10 +15,10 @@ Hold the menu key, right-click anything in the world, and act on it.
 
 ## Preview
 
+<a href="https://www.youtube.com/watch?v=peS7m275vEY">
+  <img width="392" height="312" alt="Voir la vidéo" src="https://img.youtube.com/vi/peS7m275vEY/maxresdefault.jpg" />
+</a>
 
-
-
-[![Voir la vidéo](https://img.youtube.com/vi/peS7m275vEY/maxresdefault.jpg)](https://www.youtube.com/watch?v=peS7m275vEY)
 
 <img width="392" height="312" alt="Capture d'écran 2026-06-05 213419" src="https://github.com/user-attachments/assets/496105e3-288b-42eb-9237-8f5012c85c31" />
 
@@ -56,6 +56,7 @@ Hold the menu key, right-click anything in the world, and act on it.
 - [Full documentation](#full-documentation)
 - [Credits](#credits)
 - [License](#license)
+- [MIST145 Fork — Theme Customization](#mist145-fork--theme-customization)
 
 ---
 
@@ -319,3 +320,98 @@ All trademarks and resources belong to their respective authors.
 ## License
 
 MIT — do what you want, no warranty.
+
+---
+
+---
+
+## MIST145 Fork — Theme Customization
+
+> This fork ([MIST145/off-target](https://github.com/MIST145/off-target)) is based on the original [OffSey/off-target](https://github.com/OffSey/off-target) and adds a **built-in Theme Editor** — a full per-player UI customization system with preset themes and a custom color editor.
+
+
+## Preview
+
+
+<a href="https://r2.fivemanage.com/gMiUDRxmYxB3TtNzN5a6G/test_folder/try/CustomizingThemesinFiveMResource(2)(online-video-cutter.com)(3)-ezremove.mp4">
+  <img width="392" height="312" alt="See Preview" src="https://r2.fivemanage.com/gMiUDRxmYxB3TtNzN5a6G/test_folder/logos/17810801926142.png" />
+</a>
+
+### Theme Presets
+
+<img width="392" height="312" alt="Theme Presets" src="https://r2.fivemanage.com/gMiUDRxmYxB3TtNzN5a6G/test_folder/try/IMG_20260609_002132.jpg" />
+
+### Theme Customization
+
+<img width="392" height="312" alt="Theme Customization" src="https://r2.fivemanage.com/gMiUDRxmYxB3TtNzN5a6G/test_folder/try/IMG_20260609_002152.jpg" />
+
+---
+### What was added
+
+- 🖌️ **Theme Editor NUI** — in-game panel to customize every color in the context menu
+- 🎨 **6 built-in preset themes** — Midnight, Carbon, Blood, Forest, Sapphire, Ash
+- 🎛️ **Custom color editor** — independent RGB picker + alpha slider for each CSS variable
+- 💾 **Per-player persistence** — theme choice is saved via KVP and restored automatically on next session
+- ⌨️ **Configurable command** — open the editor with `/ctxtheme` (name set in `Config.ThemeCommand`)
+
+---
+
+### Opening the Theme Editor
+
+Run in-game:
+
+```
+/ctxtheme
+```
+
+The command is configurable in `shared/shared.lua`:
+
+```lua
+Config.ThemeCommand = 'ctxtheme'   -- change to any command name you want
+```
+
+It is also registered as a FiveM key binding — players can assign a key to it in **Settings → Key Bindings → FiveM**.
+
+---
+
+### Presets tab
+
+Six ready-made themes. Click any card to apply instantly.
+
+| Theme | Accent |
+| --- | --- |
+| **Midnight** | Indigo `#6366f1` |
+| **Carbon** | Amber `#f59e0b` |
+| **Blood** | Red `#ef4444` |
+| **Forest** | Emerald `#10b981` |
+| **Sapphire** | Blue `#3b82f6` |
+| **Ash** | Purple `#a855f7` |
+
+
+---
+
+### Custom tab
+
+Fine-tune every CSS variable individually. Each row has an RGB color picker and an **α** (alpha/opacity) slider. A live **Preview** panel in the bottom-left shows changes in real time before saving.
+
+| CSS Variable | Controls |
+| --- | --- |
+| `--ctx-bg` | Menu background color & opacity |
+| `--ctx-border` | Border color & opacity |
+| `--ctx-hover` | Row hover highlight & opacity |
+| `--ctx-text` | Default text color & opacity |
+| `--ctx-bright` | Highlighted / active text |
+| `--ctx-muted` | Secondary / muted text |
+| `--ctx-accent` | Accent color for icons and highlights |
+
+Click **Save Custom** to persist. Press `ESC` to close without saving.
+
+---
+
+### New files added by this fork
+
+| File | Purpose |
+| --- | --- |
+| `shared/themes.lua` | Built-in theme preset definitions |
+| `client/themes.lua` | Theme editor NUI bridge + KVP save/load logic |
+| `web/src/features/themeEditor/` | React UI for the Theme Editor panel |
